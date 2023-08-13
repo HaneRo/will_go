@@ -1,8 +1,12 @@
 import requests
 import time
 import random
+from datetime import datetime
+
+
 token = "tokentokentokentokentokentokentokentokentoken"
 company_id = 12345
+
 
 
 def step():
@@ -148,7 +152,7 @@ def share_new(news_id):
         "token": token,
         "activity_id": 15883,
         "company_id": company_id,
-        "news_id":news_id
+        "news_id":"2516"
     }
 
     # 发送 POST 请求
@@ -157,8 +161,45 @@ def share_new(news_id):
     # 打印响应内容
     print(response.text)
 
+def get_daily_knowledge(i):
+    times=datetime.now().strftime('%Y%m%d')
+    print(times)
+    url = "https://capi.wewillpro.com/qz_activity/get_daily_knowledge?token=" + token + "&companyid="+company_id+"&activityid=15883&times="+times
+    print(url)
+    response = requests.get(url)
+    print(response.text)
+    if response.json()["code"] == 200:
+        k=0
+        use_time=random.randint(15, 20)
+        for ask_info in response.json()['data']:
+            if k == i:
+                print(ask_info["ask_id"],[option['option_id'] for option in ask_info['options'] if option['answer'] == 1],use_time) 
+                time.sleep(use_time)
+                user_ask(ask_info["ask_id"],[option['option_id'] for option in ask_info['options'] if option['answer'] == 1],use_time) 
+            k+=1
 
+def user_ask(ask_id,option_id_list,use_time):
+    url = "https://capi.wewillpro.com/qz_activity/user_ask"
+    option_id=','.join(map(str, option_id_list))
+    data = {
+        "token": token,
+        "companyid": company_id,
+        "activityid": 15883,
+        "ask_id":ask_id,
+        "option_id":option_id,
+        "use_time":use_time
+    }
+    response = requests.post(url, data=data)
+    if response.json()["code"] == 200:
+        times = response.json()["data"]["times"]
+        counts = len(response.json()["data"]["top_score_list"])
+        print(times, counts)
+        return times, counts
 
+def ask():
+    for i in range(5):
+        get_daily_knowledge(i)
+    
 def get_task_list():
     to_do_list = []
     url = "https://esapi.wewillpro.com/ai_map_seven/get_task_list?token=" + \
@@ -185,16 +226,17 @@ if "首页步数" in to_do_list:
     time.sleep(5)
 if "工间操" in to_do_list:
     print("开始执行工间操任务")
-    gymnastics(get_gyminfo())
+    now_times, counts=get_gyminfo()
+    gymnastics(now_times, counts)
     time.sleep(5)
 if "知识问答" in to_do_list:
-    # print("开始执行知识问答任务")
-    # step()
-    # time.sleep(5)
+    print("开始执行知识问答任务")
+    ask()
+    time.sleep(5)
     print("暂无知识问答功能")
 if "学习阅读" in to_do_list:
     print("开始执行学习阅读任务")
-    share_new(random_get_new_id())
+    share_new("2516")
     time.sleep(5)
 
 time.sleep(5)
@@ -203,3 +245,6 @@ if not_do_list:
     print('、'.join(not_do_list)+"未完成")
 else:
     print("已全部完成")
+
+
+

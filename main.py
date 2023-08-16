@@ -4,13 +4,13 @@ import random
 from datetime import datetime
 
 token = "tokentokentokentokentokentokentokentokentoken"
-company_id = 12345
+
 
 
 def addSportRecord():
     # 获取当前时间戳
     time_str = int(time.time())
-    step = random.randint(6000, 6420)
+    step = random.randint(6000, 6200)
     # 目标 URL
     url = "https://capi.wewillpro.com/sport/addSportRecord"
 
@@ -22,14 +22,26 @@ def addSportRecord():
         "mServerStep": step,
         "token": token,
         "app_type": 1,
-        "data_source": 1
+        "data_source": 1,
+        #不确定以下数据是否有用
+        "app_version": "3.1.7",
+        "mHuaWeiStep": 0,
+        "time_zone": "GMT+08:00",
+        "mPhoneStep": step,
+        "mTotalStep": step,
+        "mWechatStep": 0,
+        "sport_type": 0,
+        "mPhoneServerStepIncreased": 0
     }
 
     # 发送 POST 请求
     response = requests.post(url, data=data)
 
     # 打印响应内容
-    print(response.text)
+    if response.json()["code"] == 200:
+        print("步数上传成功")
+        print(step)
+    #     getTodayTaskRewardList()
 
 
 def gymnastics(now_times, counts):
@@ -129,14 +141,15 @@ def get_gyminfo():
         print(times, counts)
         return times, counts
 
-def random_get_new_id():
+
+def get_last_new_id():
     url = "https://capi.wewillpro.com/new_activity/get_list?token=" + \
         token + "&activity_id=15883&page=1&limit=32"
 
     response = requests.get(url)
-    print(response.json())
     if response.json()["code"] == 200:
-        return random.choice(response.json()['data']['data'])['new_id']
+        print(response.json()['data']['data'][-1]['new_id'])
+        return response.json()['data']['data'][-1]['new_id']
 
 
 def share_new(news_id):
@@ -147,7 +160,7 @@ def share_new(news_id):
         "token": token,
         "activity_id": 15883,
         "company_id": company_id,
-        "news_id": "2516"
+        "news_id": news_id
     }
 
     # 发送 POST 请求
@@ -199,6 +212,28 @@ def ask():
         get_daily_knowledge(i)
 
 
+# 尝试刷新步数
+def getTodayTaskRewardList():
+    time_str = int(time.time())
+    url = "https://capi.wewillpro.com/task/getTodayTaskRewardList"
+    data = {
+        "token": token,
+        "time_str": time_str,
+        "app_type": 1
+    }
+    response = requests.post(url, data=data)
+    print(response.json())
+    if response.json()["code"] == 200:
+        print("尝试刷新步数成功")
+
+def get_company_id():
+    url = "https://capi.wewillpro.com/user/get_current_company?token=" + token
+
+    response = requests.get(url)
+    print(response.json())
+    if response.json()["code"] == 200:
+        return response.json()["data"]["company_id"]
+
 def get_task_list():
     to_do_list = []
     url = "https://esapi.wewillpro.com/ai_map_seven/get_task_list?token=" + \
@@ -212,7 +247,9 @@ def get_task_list():
                 to_do_list.append(info["title"])
         return to_do_list
 
-to_do_list=get_task_list()
+company_id = get_company_id()
+
+to_do_list = get_task_list()
 if to_do_list:
     print('、'.join(to_do_list)+"未完成")
 else:
@@ -225,21 +262,20 @@ if "首页步数" in to_do_list:
     time.sleep(5)
 if "工间操" in to_do_list:
     print("开始执行工间操任务")
-    now_times, counts=get_gyminfo()
+    now_times, counts = get_gyminfo()
     gymnastics(now_times, counts)
     time.sleep(5)
 if "知识问答" in to_do_list:
     print("开始执行知识问答任务")
     ask()
     time.sleep(5)
-    print("暂无知识问答功能")
-# if "学习阅读" in to_do_list:
-#     print("开始执行学习阅读任务")
-#     share_new("2516")
-#     time.sleep(5)
+if "学习阅读" in to_do_list:
+    print("开始执行学习阅读任务")
+    share_new(get_last_new_id())  # 不知道如何获取newsid，总之先最后一个
+    time.sleep(5)
 
 time.sleep(5)
-not_do_list=get_task_list()
+not_do_list = get_task_list()
 if not_do_list:
     print('、'.join(not_do_list)+"未完成")
 else:
